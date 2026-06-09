@@ -13,26 +13,39 @@ export default function Login({ onLoginSuccess }) {
         setLoading(true);
 
         try {
-            // Pastikan backend Laravel Anda berjalan di localhost:8000
-            const response = await axios.post('http://localhost:8000/api/auth/login', {
+            // Memanggil API backend Laravel
+            const response = await axios.post('http://127.0.0.1:8000/api/auth/login', {
                 email: email,
                 password: password
             });
 
             console.log("Respon dari Server:", response.data);
 
-            // Menyimpan token ke penyimpanan browser (Local Storage)
-            const token = response.data.data.token;
-            const kasirId = response.data.data.user.id; // Menangkap UUID kasir dari Laravel
+            if (response.data.success) {
+                const token = response.data.data.token;
+                const userId = response.data.data.user.id;
+                // Menangkap nama_peran berbentuk teks bersih ('kasir', 'admin', 'logistik')
+                const userRole = response.data.data.user.nama_peran;
 
-            localStorage.setItem('jwt_token', token);
-            localStorage.setItem('kasir_id', kasirId); // Menyimpan KTP kasir ke memori
+                console.log("role", userRole);
 
-            // Memicu perubahan layar ke PosDashboard
-            onLoginSuccess();
+                // Menyimpan data kredensial ke Local Storage
+                localStorage.setItem('jwt_token', token);
+                localStorage.setItem('user_id', userId);
+                localStorage.setItem('user_role', userRole);
+
+                // Memicu perubahan layar di App.jsx berdasarkan peran pengguna
+                onLoginSuccess(userRole);
+            } else {
+                setError('Respons gagal dari server.');
+            }
         } catch (err) {
-            setError(err.response?.data?.error || 'Gagal login. Periksa kembali email dan password Anda.');
+            console.error("ERROR LENGKAP:", err);
+            alert("PESAN DARI SERVER: " + JSON.stringify(err.response?.data || err.message));
+            // Menangkap pesan error dari backend jika ada, jika tidak gunakan pesan default
+            setError(err.response?.data?.message || 'Gagal login. Periksa kembali email dan password Anda.');
         } finally {
+            // Mematikan status loading indikator tombol
             setLoading(false);
         }
     };
@@ -42,7 +55,7 @@ export default function Login({ onLoginSuccess }) {
             <div className="bg-white p-8 rounded-2xl shadow-xl max-w-md w-full border border-gray-50">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-extrabold text-amber-600">Hyre Coffee</h1>
-                    <p className="text-gray-500 mt-2">Masuk ke Sistem Kasir</p>
+                    <p className="text-gray-500 mt-2">Sistem Autentikasi Satu Pintu</p>
                 </div>
 
                 {/* Menampilkan pesan error jika login gagal */}
@@ -54,11 +67,11 @@ export default function Login({ onLoginSuccess }) {
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Email</label>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Email Pengguna</label>
                         <input
                             type="email"
                             className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
-                            placeholder="kasir@hyrecoffee.com"
+                            placeholder="nama@hyrecoffee.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
@@ -66,7 +79,7 @@ export default function Login({ onLoginSuccess }) {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">Password</label>
+                        <label className="block text-sm font-bold text-gray-700 mb-1">Kata Sandi</label>
                         <input
                             type="password"
                             className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all"
