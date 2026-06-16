@@ -140,11 +140,11 @@ export default function PosDashboard({ onLogout }) {
             setIsProcessing(false);
         }
     };
+
     return (
         <>
             {/* ======================================================== */}
             {/* 1. LAYAR KASIR UTAMA (AKAN DISEMBUNYIKAN SAAT MENCETAK)  */}
-            {/* Perhatikan penambahan class 'print:hidden' di bawah ini */}
             {/* ======================================================== */}
             <div className="min-h-screen bg-gray-50 flex flex-col font-sans select-none print:hidden">
                 <header className="bg-white shadow-sm p-4 flex justify-between items-center z-10">
@@ -170,11 +170,27 @@ export default function PosDashboard({ onLogout }) {
                         ) : (
                             <div className="grid grid-cols-3 gap-4">
                                 {products.map((product) => (
-                                    <div key={product.id} onClick={() => handleProductClick(product)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all active:scale-95">
-                                        <div className="h-32 bg-amber-50 rounded-xl mb-4 flex items-center justify-center text-4xl border border-amber-100">☕</div>
-                                        <h3 className="font-bold text-gray-800">{product.nama}</h3>
-                                        <p className="text-gray-400 text-xs mt-0.5">Mulai dari</p>
-                                        <p className="text-amber-600 font-extrabold">Rp {Number(product.harga_dasar).toLocaleString('id-ID')}</p>
+                                    <div key={product.id} onClick={() => handleProductClick(product)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all active:scale-95 flex flex-col justify-between">
+
+                                        {/* TAMPILAN GAMBAR DINAMIS (DIPERBARUI) */}
+                                        {product.url_gambar ? (
+                                            <img
+                                                src={`http://localhost:8000/storage/${product.url_gambar}`}
+                                                alt={product.nama}
+                                                className="w-full h-32 object-cover rounded-xl mb-4 border border-gray-100"
+                                            />
+                                        ) : (
+                                            // Fallback jika produk belum memiliki gambar
+                                            <div className="h-32 bg-amber-50 rounded-xl mb-4 flex items-center justify-center text-4xl border border-amber-100">
+                                                ☕
+                                            </div>
+                                        )}
+
+                                        <div>
+                                            <h3 className="font-bold text-gray-800">{product.nama}</h3>
+                                            <p className="text-gray-400 text-xs mt-0.5">Mulai dari</p>
+                                            <p className="text-amber-600 font-extrabold">Rp {Number(product.harga_dasar).toLocaleString('id-ID')}</p>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -272,11 +288,9 @@ export default function PosDashboard({ onLogout }) {
 
             {/* ======================================================== */}
             {/* 2. AREA CETAK STRUK THERMAL (HANYA MUNCUL DI PRINTER)    */}
-            {/* Perhatikan penambahan class 'hidden print:block'         */}
             {/* ======================================================== */}
             {receiptData && (
                 <div className="hidden print:block w-[58mm] mx-auto text-black bg-white font-mono text-[12px] p-2">
-
                     {/* Header Struk */}
                     <div className="text-center mb-4">
                         <h2 className="font-extrabold text-lg uppercase tracking-widest">HYRE COFFEE</h2>

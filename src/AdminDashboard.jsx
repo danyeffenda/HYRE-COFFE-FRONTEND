@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import ProdukList from './ProdukList';
+import PegawaiList from './PegawaiList';
+import DashboardOverview from './DashboardOverview';
 
 export default function AdminDashboard({ onLogout }) {
     // State untuk mengatur menu apa yang sedang aktif di layar utama
@@ -8,49 +10,29 @@ export default function AdminDashboard({ onLogout }) {
     // Fungsi render dinamis untuk area konten utama
     const renderContent = () => {
         switch (activeMenu) {
-            case 'overview':
+            case 'ringkasan':
                 return (
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-800 mb-4">Ringkasan Bisnis</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {/* Kartu Dummy Statistik */}
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                <h3 className="text-sm font-semibold text-gray-500">Total Pendapatan Hari Ini</h3>
-                                <p className="text-3xl font-bold text-amber-600 mt-2">Rp 0</p>
-                            </div>
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                <h3 className="text-sm font-semibold text-gray-500">Total Transaksi</h3>
-                                <p className="text-3xl font-bold text-blue-600 mt-2">0</p>
-                            </div>
-                            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                                <h3 className="text-sm font-semibold text-gray-500">Produk Terlaris</h3>
-                                <p className="text-xl font-bold text-green-600 mt-2">-</p>
-                            </div>
-                        </div>
+                    <div className="animate-fade-in">
+                        <DashboardOverview />
                     </div>
                 );
             case 'produk':
                 return (
                     <div className="animate-fade-in">
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-gray-800">Manajemen Produk</h2>
-                            <button className="bg-amber-600 text-white px-4 py-2 rounded-xl font-bold hover:bg-amber-700 transition-colors shadow-md shadow-amber-200">
-                                + Tambah Produk
-                            </button>
-                        </div>
-
                         {/* PANGGIL KOMPONEN TABEL DI SINI */}
                         <ProdukList />
-
                     </div>
                 );
             case 'pegawai':
                 return (
-                    <div>
-                        <h2 className="text-2xl font-bold text-gray-800 mb-4">Manajemen Pegawai</h2>
-                        <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center text-gray-500">
-                            Modul data kasir dan logistik akan kita bangun di sini.
-                        </div>
+                    <div className="animate-fade-in">
+                        <PegawaiList />
+                    </div>
+                );
+            case 'dashboard':
+                return (
+                    <div className="animate-fade-in">
+                        <DashboardOverview />
                     </div>
                 );
             default:
@@ -70,8 +52,8 @@ export default function AdminDashboard({ onLogout }) {
                 <div className="flex-1 overflow-y-auto py-4">
                     <nav className="space-y-1 px-4">
                         <button
-                            onClick={() => setActiveMenu('overview')}
-                            className={`w-full text-left px-4 py-3 rounded-xl transition-colors font-semibold ${activeMenu === 'overview' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50'}`}
+                            onClick={() => setActiveMenu('dashboard')}
+                            className={`w-full text-left px-4 py-3 rounded-xl transition-colors font-semibold ${activeMenu === 'dashboard' ? 'bg-amber-50 text-amber-700' : 'text-gray-600 hover:bg-gray-50'}`}
                         >
                             📊 Ringkasan
                         </button>
