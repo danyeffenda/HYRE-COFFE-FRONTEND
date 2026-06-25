@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../axiosConfig';
 
 export default function ProdukList() {
     const [produks, setProduks] = useState([]);
@@ -29,7 +29,7 @@ export default function ProdukList() {
 
     const fetchProduk = async () => {
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/produk', {
+            const response = await api.get('/produk', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (response.data.success) {
@@ -42,7 +42,7 @@ export default function ProdukList() {
 
     const fetchKategori = async () => {
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/kategori', {
+            const response = await api.get('/kategori', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (response.data.success) {
@@ -133,7 +133,7 @@ export default function ProdukList() {
                 });
             } else {
                 // Mode Tambah Baru (POST biasa)
-                response = await axios.post('http://127.0.0.1:8000/api/produk', submitData, {
+                response = await api.post('/produk', submitData, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                         'Content-Type': 'multipart/form-data' // Header wajib untuk file

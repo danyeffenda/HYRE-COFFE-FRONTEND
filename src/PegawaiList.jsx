@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../axiosConfig';
 
 export default function PegawaiList() {
     const [pegawais, setPegawais] = useState([]);
@@ -26,7 +26,7 @@ export default function PegawaiList() {
 
     const fetchPegawai = async () => {
         try {
-            const response = await axios.get('http://127.0.0.1:8000/api/pegawai', {
+            const response = await api.get('/pegawai', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (response.data.success) {
@@ -61,7 +61,7 @@ export default function PegawaiList() {
         setSubmitLoading(true);
 
         try {
-            const response = await axios.post('http://127.0.0.1:8000/api/pegawai', formData, {
+            const response = await api.post('/pegawai', formData, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
