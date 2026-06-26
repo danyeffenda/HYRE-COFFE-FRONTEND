@@ -107,15 +107,13 @@ export default function ProdukList() {
         e.preventDefault();
         setSubmitLoading(true);
 
-        // MENGGUNAKAN FORMDATA UNTUK MENGIRIM FILE
         const submitData = new FormData();
         submitData.append('kode_produk', formData.kode_produk);
         submitData.append('nama', formData.nama);
         submitData.append('kategori_produk_id', formData.kategori_produk_id);
         submitData.append('harga_dasar', formData.harga_dasar);
-        submitData.append('aktif', formData.aktif ? 1 : 0); // Ubah boolean jadi 1 atau 0
+        submitData.append('aktif', formData.aktif ? 1 : 0);
 
-        // Jika ada file gambar baru yang dipilih, masukkan ke koper FormData
         if (fileGambar) {
             submitData.append('url_gambar', fileGambar);
         }
@@ -123,21 +121,13 @@ export default function ProdukList() {
         try {
             let response;
             if (isEditMode) {
-                // Trik Laravel: Update dengan file gambar tetap pakai POST, tapi ditambah _method PUT
                 submitData.append('_method', 'PUT');
-                response = await axios.post(`http://127.0.0.1:8000/api/produk/${editId}`, submitData, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data' // Header wajib untuk file
-                    }
+                response = await api.post(`/produk/${editId}`, submitData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
                 });
             } else {
-                // Mode Tambah Baru (POST biasa)
                 response = await api.post('/produk', submitData, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data' // Header wajib untuk file
-                    }
+                    headers: { 'Content-Type': 'multipart/form-data' }
                 });
             }
 
@@ -157,9 +147,7 @@ export default function ProdukList() {
     const handleDelete = async (id, namaProduk) => {
         if (window.confirm(`Apakah Anda yakin ingin menghapus produk "${namaProduk}"? (Foto juga akan terhapus)`)) {
             try {
-                const response = await axios.delete(`http://127.0.0.1:8000/api/produk/${id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const response = await api.delete(`/produk/${id}`);
                 if (response.data.success) {
                     alert("Produk berhasil dihapus!");
                     fetchProduk();

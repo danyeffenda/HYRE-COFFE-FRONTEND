@@ -21,31 +21,31 @@ export default function GerobakList() {
     // 2. Handle Simpan (Tambah/Edit)
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const token = localStorage.getItem('jwt_token');
         try {
             if (formData.id) {
-                await axios.put(`http://127.0.0.1:8000/api/gerobak/${formData.id}`, formData, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await api.put(`/gerobak/${formData.id}`, formData);
             } else {
-                await api.post('http://127.0.0.1:8000/api/gerobak', formData, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                await api.post('/gerobak', formData);
             }
             fetchGerobak();
             setIsModalOpen(false);
             setFormData({ id: null, nama_gerobak: '' });
-        } catch (err) { alert('Gagal menyimpan data'); }
+        } catch (err) {
+            alert('Gagal menyimpan data');
+            console.error(err);
+        }
     };
 
     // 3. Handle Hapus
     const handleDelete = async (id) => {
         if (!window.confirm('Yakin ingin menghapus gerobak ini?')) return;
-        const token = localStorage.getItem('jwt_token');
-        await axios.delete(`http://127.0.0.1:8000/api/gerobak/${id}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        fetchGerobak();
+        try {
+            await api.delete(`/gerobak/${id}`);
+            fetchGerobak();
+        } catch (err) {
+            alert('Gagal menghapus gerobak');
+            console.error(err);
+        }
     };
 
     return (

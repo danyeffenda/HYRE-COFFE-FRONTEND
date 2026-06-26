@@ -61,9 +61,7 @@ export default function PegawaiList() {
         setSubmitLoading(true);
 
         try {
-            const response = await api.post('/pegawai', formData, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const response = await api.post('/pegawai', formData);
 
             if (response.data.success) {
                 setIsModalOpen(false);
@@ -84,15 +82,14 @@ export default function PegawaiList() {
     const handleDelete = async (id, namaPegawai) => {
         if (window.confirm(`Yakin ingin menghapus pegawai "${namaPegawai}" beserta akses loginnya secara permanen?`)) {
             try {
-                const response = await axios.delete(`http://127.0.0.1:8000/api/pegawai/${id}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                const response = await api.delete(`/pegawai/${id}`);
                 if (response.data.success) {
                     alert("Data pegawai berhasil dihapus!");
                     fetchPegawai();
                 }
             } catch (err) {
                 alert("Gagal menghapus pegawai.");
+                console.error(err);
             }
         }
     };

@@ -1,124 +1,179 @@
 import React, { useState, useEffect } from 'react';
 import api from '../axiosConfig';
-import axios from "axios";
 
 export default function PosDashboard({ onLogout }) {
-    // --- STATE UTAMA ---
     const [products, setProducts] = useState([]);
+    const [kategoris, setKategoris] = useState([]);
     const [loading, setLoading] = useState(true);
     const [cart, setCart] = useState([]);
 
-    // --- STATE UNTUK MODAL VARIAN ---
+    // const [varian, setVarian] = useState([]);
+
+    const [activeCategory, setActiveCategory] = useState('Semua Produk');
+    const [searchQuery, setSearchQuery] = useState('');
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentProduct, setCurrentProduct] = useState(null);
-    const [variants, setVariants] = useState([]);
-    const [loadingVariants, setLoadingVariants] = useState(false);
+    const [modalQty, setModalQty] = useState(1);
 
-    // --- STATE PEMBAYARAN & STRUK ---
+    // State baru untuk Varian Global dari Database
+    const [globalModifiers, setGlobalModifiers] = useState({
+        size: [],
+        ice: [],
+        sweetness: []
+    });
+
+    const [selectedOptions, setSelectedOptions] = useState({
+        size: null,
+        ice: null,
+        sweetness: null
+    });
+
     const [isProcessing, setIsProcessing] = useState(false);
-    const [receiptData, setReceiptData] = useState(null); // Menyimpan data struk terakhir
+    const [receiptData, setReceiptData] = useState(null);
 
-    // 1. Ambil Data Produk Induk
+    // 1. Ambil Data
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchData = async () => {
             try {
-                const token = localStorage.getItem('jwt_token');
-                const response = await axios.get('http://localhost:8000/api/produk', {
-                    headers: { Authorization: `Bearer ${token}` }
+                const [resProduk, resKategori, resVarian] = await Promise.all([
+                    api.get('/produk'),
+                    api.get('/kategori'),
+                    api.get('/varian-produk')
+                ]);
+
+                setProducts(resProduk.data.data || resProduk.data);
+                setKategoris(resKategori.data.data || resKategori.data);
+                // setVarian(resVarian.data.data || resVarian.data);
+
+                const allVariants = resVarian.data.data || resVarian.data;
+                console.log(allVariants);
+                const globalVars = allVariants.filter(v => v.produk_id === null && v.aktif);
+
+                const sizes = globalVars.filter(v => v.kategori_pilihan === 'Size');
+                const ices = globalVars.filter(v => v.kategori_pilihan === 'Ice');
+                const sweets = globalVars.filter(v => v.kategori_pilihan === 'Sweetness');
+                const variantIds = globalVars.map(v => v.id);
+
+                setGlobalModifiers({
+                    id: variantIds,
+                    size: sizes,
+                    ice: ices,
+                    sweetness: sweets
                 });
-                setProducts(response.data.data || response.data);
+
             } catch (error) {
-                console.error("Gagal mengambil data produk:", error);
+                console.error("Gagal mengambil data:", error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchProducts();
+        fetchData();
     }, []);
 
-    // 2. Fungsi Buka Modal Varian
-    const handleProductClick = async (product) => {
+    const filteredProducts = products.filter(product => {
+        const matchesCategory = activeCategory === 'Semua Produk' || (product.kategori && product.kategori.nama === activeCategory);
+        const matchesSearch = product.nama.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesCategory && matchesSearch && product.aktif;
+    });
+
+    // 2. Klik Produk
+    const handleProductClick = (product) => {
         setCurrentProduct(product);
+        // Set default ke opsi pertama jika tersedia
+        setSelectedOptions({
+            size: globalModifiers.size[0] || null,
+            ice: globalModifiers.ice[0] || null,
+            sweetness: globalModifiers.sweetness[0] || null
+        });
         setIsModalOpen(true);
-        setLoadingVariants(true);
-        setVariants([]);
+        setModalQty(1);
 
-        try {
-            const token = localStorage.getItem('jwt_token');
-            const response = await axios.get('http://localhost:8000/api/varian-produk', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-
-            const allVariants = response.data.data || response.data;
-            const filteredVariants = allVariants.filter(v => v.produk_id === product.id);
-            setVariants(filteredVariants);
-        } catch (error) {
-            console.error("Gagal mengambil data varian:", error);
-        } finally {
-            setLoadingVariants(false);
-        }
+        setIsModalOpen(true);
     };
 
-    // 3. Fungsi Tambah ke Keranjang
-    const handleSelectVariant = (variant) => {
-        const hargaSatuan = Number(currentProduct.harga_dasar) + Number(variant.harga_tambahan || 0);
-        const existingItem = cart.find(item => item.varian_produk_id === variant.id);
+    // 3. Tambah ke Keranjang
+    const handleAddToCart = () => {
+        const hrgSize = selectedOptions.size ? Number(selectedOptions.size.harga_tambahan) : 0;
+        const hrgIce = selectedOptions.ice ? Number(selectedOptions.ice.harga_tambahan) : 0;
+        const hrgSweet = selectedOptions.sweetness ? Number(selectedOptions.sweetness.harga_tambahan) : 0;
+
+        const hargaTotalSatuan = Number(currentProduct.harga_dasar) + hrgSize + hrgIce + hrgSweet;
+
+        const uniqueVariantId = `${currentProduct.id}-${selectedOptions.size?.id || 'ns'}-${selectedOptions.ice?.id || 'ni'}-${selectedOptions.sweetness?.id || 'nsw'}`;
+
+        const existingItem = cart.find(item => item.cart_id === uniqueVariantId);
 
         if (existingItem) {
             setCart(cart.map(item =>
-                item.varian_produk_id === variant.id ? { ...item, qty: item.qty + 1 } : item
+                item.cart_id === uniqueVariantId ? { ...item, qty: item.qty + modalQty } : item
             ));
         } else {
             setCart([...cart, {
-                varian_produk_id: variant.id,
+                cart_id: uniqueVariantId,
+                produk_id: currentProduct.id,
                 nama_produk: currentProduct.nama,
-                nama_varian: variant.nama_varian,
-                label_ukuran: variant.label_ukuran,
-                suhu: variant.suhu,
-                harga_satuan: hargaSatuan,
-                qty: 1
+                size: selectedOptions.size?.nama_varian || '-',
+                ice: selectedOptions.ice?.nama_varian || '-',
+                sweetness: selectedOptions.sweetness?.nama_varian || '-',
+                harga_satuan: hargaTotalSatuan,
+                qty: modalQty
             }]);
         }
         setIsModalOpen(false);
     };
 
-    // 4. Hitung Total Tagihan
     const totalHarga = cart.reduce((total, item) => total + (item.harga_satuan * item.qty), 0);
+    const handleUpdateCartQty = (cart_id, change) => {
+        setCart(cart.map(item => {
+            if (item.cart_id === cart_id) {
+                // Mencegah qty turun di bawah 1 (jika ingin hapus, gunakan tombol Hapus)
+                const newQty = Math.max(1, item.qty + change);
+                return { ...item, qty: newQty };
+            }
+            return item;
+        }));
+    };
 
-    // --- FUNGSI PROSES PEMBAYARAN & CETAK STRUK ---
+    const handleRemoveFromCart = (cart_id) => {
+        setCart(cart.filter(item => item.cart_id !== cart_id));
+    };
+
+    // 4. Proses Pembayaran
     const handleCheckout = async () => {
         setIsProcessing(true);
-
         try {
-            // 1. TARIK DATA DARI MEMORI BROWSER
-            const token = localStorage.getItem('jwt_token');
-            const kasirIdAktif = localStorage.getItem('kasir_id');
+            const kasirIdAktif = localStorage.getItem('user_id');
             const gerobakIdAktif = localStorage.getItem('gerobak_id');
+            console.log("kasir id:" + kasirIdAktif);
+            console.log("gerobak id:" + gerobakIdAktif);
 
-            // Proteksi tambahan: Pastikan ID tidak kosong
             if (!kasirIdAktif || !gerobakIdAktif) {
-                alert("Sesi tidak valid! KTP Kasir atau Gerobak tidak ditemukan. Silakan Logout dan Login kembali.");
+                alert("Sesi tidak valid! Silakan Logout dan Login kembali.");
                 setIsProcessing(false);
                 return;
             }
-
-            // 2. RAKIT PAYLOAD SECARA DINAMIS
             const payload = {
-                gerobak_id: gerobakIdAktif,  // <-- Terisi otomatis sesuai gerobak yang dipilih
-                kasir_id: kasirIdAktif,      // <-- Terisi otomatis sesuai kasir yang login
+                gerobak_id: gerobakIdAktif,
+                kasir_id: kasirIdAktif,
                 catatan: "Pesanan dari sistem POS Web",
                 items: cart.map(item => ({
-                    varian_produk_id: item.varian_produk_id,
+                    produk_id: item.produk_id,
                     jumlah: item.qty,
-                    harga_satuan: item.harga_satuan
+                    harga_satuan: item.harga_satuan,
+                    // Opsional: Anda bisa mengirimkan catatan varian ke backend di sini jika tabel penjualan detail Anda mendukungnya
+                    catatan_varian: `${item.size}, ${item.ice}, ${item.sweetness}`
                 }))
             };
+            let response;
 
-            const response = await axios.post('http://localhost:8000/api/penjualan', payload, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            try {
+                response = await api.post('/penjualan', payload);
+            } catch (err) {
+                console.log(err.response?.data);
+                return;
+            }
 
-            // 3. SIMPAN DATA KE STATE STRUK
             setReceiptData({
                 nomor_transaksi: response.data.data.nomor_penjualan,
                 tanggal: new Date().toLocaleString('id-ID'),
@@ -126,7 +181,13 @@ export default function PosDashboard({ onLogout }) {
                 total: totalHarga
             });
 
-            // 4. BUKA JENDELA PRINT
+            // setReceiptData({
+            //     nomor_transaksi: response.data.data.nomor_penjualan,
+            //     tanggal: new Date().toLocaleString('id-ID'),
+            //     items: [...cart],
+            //     total: totalHarga
+            // });
+
             setTimeout(() => {
                 window.print();
                 alert("✅ Transaksi Berhasil! Silakan cetak struk.");
@@ -135,8 +196,7 @@ export default function PosDashboard({ onLogout }) {
             }, 800);
 
         } catch (error) {
-            const errorMsg = error.response?.data?.error || error.response?.data?.message || "Terjadi kesalahan sistem.";
-            alert("❌ Gagal Memproses Pembayaran:\n" + errorMsg);
+            alert("❌ Gagal Memproses Pembayaran.");
         } finally {
             setIsProcessing(false);
         }
@@ -144,85 +204,157 @@ export default function PosDashboard({ onLogout }) {
 
     return (
         <>
-            {/* ======================================================== */}
-            {/* 1. LAYAR KASIR UTAMA (AKAN DISEMBUNYIKAN SAAT MENCETAK)  */}
-            {/* ======================================================== */}
-            <div className="min-h-screen bg-gray-50 flex flex-col font-sans select-none print:hidden">
-                <header className="bg-white shadow-sm p-4 flex justify-between items-center z-10">
-                    <h1 className="text-2xl font-extrabold text-amber-600 tracking-tight">Hyre Coffee</h1>
+            <div className="min-h-screen bg-[#F5F7F5] flex flex-col font-sans select-none print:hidden">
+                <header className="bg-white shadow-sm p-4 flex justify-between items-center z-10 border-b border-[#EAEFEA]">
+                    <h1 className="text-2xl font-extrabold text-[#2B422C] tracking-tight">Hyre Coffee</h1>
                     <div className="flex items-center gap-4">
-                        <div className="text-sm font-medium text-gray-500 bg-gray-100 px-4 py-2 rounded-full">Kasir Aktif</div>
+                        <div className="text-sm font-medium text-[#4A5D4E] bg-[#F0F4F1] px-4 py-2 rounded-full">Kasir Aktif</div>
                         <button onClick={onLogout} className="text-sm font-bold text-red-500 hover:text-red-700 transition-colors">Keluar</button>
                     </div>
                 </header>
 
-                <div className="flex-1 flex overflow-hidden">
-                    <main className="flex-1 p-6 overflow-y-auto">
-                        <h2 className="text-xl font-bold mb-6 text-gray-800">Menu Produk</h2>
-                        {loading ? (
-                            <div className="text-center text-gray-500 font-bold mt-10">Memuat data dari server...</div>
-                        ) : products.length === 0 ? (
-                            <div className="text-center mt-10 p-8 bg-red-50 rounded-2xl border border-red-100 shadow-sm">
-                                <p className="text-4xl mb-3">📭</p>
-                                <h3 className="text-lg font-bold text-red-600">Gagal Memuat Produk</h3>
-                                <p className="text-sm text-red-500 mt-2 font-medium">Data kosong atau token kedaluwarsa.</p>
-                                <p className="text-xs text-red-400 mt-1">Coba tekan tombol <b>Keluar</b> di pojok kanan atas, lalu login kembali.</p>
+                <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+                    <main className="flex-1 p-3 sm:p-4 lg:p-6 flex flex-col overflow-hidden">
+                        <div className="flex flex-col lg:flex-row gap-4 justify-between lg:items-center mb-5">
+                            <p className="text-[#4A5D4E] font-medium">Temukan menu favorit untuk melengkapi aktivitasmu hari ini.</p>
+                            <div className="flex gap-3">
+                                <input
+                                    type="text"
+                                    placeholder="Cari produk..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full lg:w-72 border border-[#EAEFEA] rounded-full px-5 py-2 shadow-sm focus:ring-2 focus:ring-[#6B8E6E]"
+                                />
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-3 gap-4">
-                                {products.map((product) => (
-                                    <div key={product.id} onClick={() => handleProductClick(product)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 cursor-pointer hover:shadow-md hover:border-amber-300 transition-all active:scale-95 flex flex-col justify-between">
+                        </div>
 
-                                        {/* TAMPILAN GAMBAR DINAMIS (DIPERBARUI) */}
-                                        {product.url_gambar ? (
-                                            <img
-                                                src={`http://localhost:8000/storage/${product.url_gambar}`}
-                                                alt={product.nama}
-                                                className="w-full h-32 object-cover rounded-xl mb-4 border border-gray-100"
-                                            />
-                                        ) : (
-                                            // Fallback jika produk belum memiliki gambar
-                                            <div className="h-32 bg-amber-50 rounded-xl mb-4 flex items-center justify-center text-4xl border border-amber-100">
-                                                ☕
-                                            </div>
-                                        )}
-
-                                        <div>
-                                            <h3 className="font-bold text-gray-800">{product.nama}</h3>
-                                            <p className="text-gray-400 text-xs mt-0.5">Mulai dari</p>
-                                            <p className="text-amber-600 font-extrabold">Rp {Number(product.harga_dasar).toLocaleString('id-ID')}</p>
-                                        </div>
-                                    </div>
+                        <div className="flex flex-col lg:flex-row flex-1 gap-5 overflow-hidden">
+                            <div className="w-full lg:w-56 bg-white rounded-2xl p-4 shadow-sm border border-[#EAEFEA] shrink-0 overflow-x-auto lg:overflow-y-auto">
+                                <h3 className="text-xs font-bold text-[#A7B8AA] mb-4 uppercase tracking-widest pl-2">Kategori</h3>
+                                <button
+                                    onClick={() => setActiveCategory('Semua Produk')}
+                                    className={`text-left px-4 py-3 rounded-xl mb-1 transition-all text-sm font-bold ${activeCategory === 'Semua Produk' ? 'bg-[#6B8E6E] text-white shadow-md' : 'text-[#4A5D4E] hover:bg-[#F0F4F1]'}`}
+                                >
+                                    Semua Produk
+                                </button>
+                                {kategoris.map(kat => (
+                                    <button
+                                        key={kat.id}
+                                        onClick={() => setActiveCategory(kat.nama)}
+                                        className={`text-left px-4 py-3 rounded-xl mb-1 transition-all text-sm font-bold ${activeCategory === kat.nama ? 'bg-[#6B8E6E] text-white shadow-md' : 'text-[#4A5D4E] hover:bg-[#F0F4F1]'}`}
+                                    >
+                                        {kat.nama}
+                                    </button>
                                 ))}
                             </div>
-                        )}
+
+                            {/* PRODUK */}
+                            <div className="flex-1 overflow-y-auto pb-5">
+                                {loading ? (
+                                    <div className="text-center mt-10">
+                                        Memuat...
+                                    </div>
+                                ) : (
+                                    <div
+                                        className="grid gap-5"
+                                        style={{
+                                            gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
+                                        }}
+                                    >
+                                        {filteredProducts.map((product) => (
+                                            <div
+                                                key={product.id}
+                                                onClick={() => handleProductClick(product)}
+                                                className="bg-white rounded-3xl border border-[#EAEFEA] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden cursor-pointer"
+                                            >
+                                                {/* Gambar */}
+                                                <div className="aspect-square bg-[#F7F8F7] flex items-center justify-center">
+                                                    {product.url_gambar ? (
+                                                        <img
+                                                            src={`http://127.0.0.1:8000/storage/${product.url_gambar}`}
+                                                            alt={product.nama}
+                                                            className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
+                                                        />
+                                                    ) : (
+                                                        <div className="text-5xl">☕</div>
+                                                    )}
+                                                </div>
+
+                                                {/* Nama Produk */}
+                                                <div className="border-t border-[#F0F0F0] px-4 py-4 min-h-[80px] flex items-center justify-center">
+                                                    <h3 className="text-center font-bold text-sm sm:text-base text-[#2B422C] leading-snug line-clamp-2">
+                                                        {product.nama}
+                                                    </h3>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </main>
 
-                    <aside className="w-96 bg-white shadow-2xl flex flex-col z-20">
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-gray-800">Pesanan Saat Ini</h2>
-                            <span className="bg-amber-100 text-amber-800 text-xs font-bold px-2 py-1 rounded-lg">{cart.length} Varian</span>
+                    <aside className="w-full lg:w-96 bg-white shadow-2xl flex flex-col border-t lg:border-l border-[#EAEFEA] max-h-[45vh] lg:max-h-full">
+                        <div className="p-6 border-b border-[#EAEFEA] flex justify-between items-center shrink-0">
+                            <h2 className="text-xl font-bold text-[#2B422C]">Pesanan Saat Ini</h2>
+                            <span className="bg-[#6B8E6E]/10 text-[#6B8E6E] text-xs font-bold px-2 py-1 rounded-lg">{cart.length} Item</span>
                         </div>
 
                         <div className="flex-1 p-6 overflow-y-auto">
                             {cart.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                                <div className="flex flex-col items-center justify-center h-full text-[#A7B8AA]">
                                     <p className="text-4xl mb-2">🛒</p>
-                                    <p className="text-sm">Belum ada pesanan</p>
+                                    <p className="text-sm font-medium">Belum ada pesanan</p>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     {cart.map((item, index) => (
-                                        <div key={index} className="flex justify-between items-center border-b border-gray-50 pb-2">
-                                            <div>
-                                                <h4 className="font-bold text-gray-800 text-sm">{item.nama_produk}</h4>
-                                                <p className="text-xs text-amber-600 font-medium">
-                                                    {item.nama_varian} {item.label_ukuran ? `(${item.label_ukuran})` : ''} {item.suhu ? `- ${item.suhu}` : ''}
-                                                </p>
-                                                <p className="text-xs text-gray-400 mt-0.5">Rp {item.harga_satuan.toLocaleString('id-ID')} x {item.qty}</p>
+                                        <div key={index} className="flex flex-col border-b border-[#F0F4F1] pb-3 mb-1">
+                                            {/* Baris Atas: Nama Produk & Total Harga */}
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div>
+                                                    <h4 className="font-bold text-[#2B422C] text-sm leading-tight">{item.nama_produk}</h4>
+                                                    <p className="text-[10px] text-[#6B8E6E] font-medium mt-0.5">
+                                                        {item.size} • {item.ice} • {item.sweetness}
+                                                    </p>
+                                                </div>
+                                                <div className="font-bold text-[#2B422C] text-sm text-right shrink-0 ml-2">
+                                                    Rp {(item.harga_satuan * item.qty).toLocaleString('id-ID')}
+                                                </div>
                                             </div>
-                                            <div className="font-bold text-gray-800 text-sm">
-                                                Rp {(item.harga_satuan * item.qty).toLocaleString('id-ID')}
+
+                                            {/* Baris Bawah: Harga Satuan & Kontrol Qty */}
+                                            <div className="flex justify-between items-center">
+                                                <p className="text-xs text-[#A7B8AA]">@ Rp {item.harga_satuan.toLocaleString('id-ID')}</p>
+
+                                                <div className="flex items-center gap-2">
+                                                    {/* Tombol Hapus */}
+                                                    <button
+                                                        onClick={() => handleRemoveFromCart(item.cart_id)}
+                                                        className="text-red-400 hover:text-red-600 text-xs font-bold mr-2 px-2 py-1 rounded-md hover:bg-red-50 transition-colors"
+                                                    >
+                                                        Hapus
+                                                    </button>
+
+                                                    {/* Tombol Minus */}
+                                                    <button
+                                                        onClick={() => handleUpdateCartQty(item.cart_id, -1)}
+                                                        className="w-6 h-6 rounded-md bg-[#F0F4F1] text-[#4A5D4E] font-bold flex items-center justify-center hover:bg-[#EAEFEA] transition-colors"
+                                                    >
+                                                        -
+                                                    </button>
+
+                                                    {/* Angka Qty */}
+                                                    <span className="text-xs font-black text-[#2B422C] w-4 text-center">{item.qty}</span>
+
+                                                    {/* Tombol Plus */}
+                                                    <button
+                                                        onClick={() => handleUpdateCartQty(item.cart_id, 1)}
+                                                        className="w-6 h-6 rounded-md bg-[#6B8E6E] text-white font-bold flex items-center justify-center hover:bg-[#527055] transition-colors"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     ))}
@@ -230,69 +362,130 @@ export default function PosDashboard({ onLogout }) {
                             )}
                         </div>
 
-                        <div className="p-6 bg-gray-50 border-t border-gray-100">
+                        <div className="p-6 bg-[#F5F7F5] border-t border-[#EAEFEA]">
                             <div className="flex justify-between items-center mb-6">
-                                <span className="font-bold text-gray-500">Total Tagihan</span>
-                                <span className="font-extrabold text-2xl text-gray-800">Rp {totalHarga.toLocaleString('id-ID')}</span>
+                                <span className="font-bold text-[#4A5D4E]">Total Tagihan</span>
+                                <span className="font-black text-2xl text-[#2B422C]">Rp {totalHarga.toLocaleString('id-ID')}</span>
                             </div>
                             <button
                                 onClick={handleCheckout}
                                 disabled={cart.length === 0 || isProcessing}
-                                className={`w-full font-bold py-4 rounded-xl transition-colors shadow-lg ${cart.length > 0 && !isProcessing ? 'bg-amber-600 text-white hover:bg-amber-700 active:bg-amber-800 shadow-amber-200' : 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'}`}
+                                className={`w-full font-bold py-4 rounded-xl transition-colors shadow-lg ${cart.length > 0 && !isProcessing ? 'bg-[#6B8E6E] text-white hover:bg-[#527055] active:bg-[#4A5D4E] shadow-[#6B8E6E]/30' : 'bg-[#EAEFEA] text-[#A7B8AA] cursor-not-allowed shadow-none'}`}
                             >
                                 {isProcessing ? 'Memproses Transaksi...' : 'Proses Pembayaran'}
                             </button>
                         </div>
+
                     </aside>
                 </div>
 
-                {isModalOpen && (
+                {isModalOpen && currentProduct && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-fade-in">
-                        <div className="bg-white p-6 rounded-3xl shadow-2xl max-w-md w-full border border-gray-50 flex flex-col max-h-[80vh]">
-                            <div className="flex justify-between items-start mb-4">
+                        <div className="bg-white p-6 rounded-3xl shadow-2xl max-w-md w-full border border-[#EAEFEA] flex flex-col">
+                            <div className="flex justify-between items-start mb-6 border-b border-[#EAEFEA] pb-4">
                                 <div>
-                                    <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-md uppercase tracking-wider">Pilih Varian</span>
-                                    <h3 className="text-xl font-black text-gray-800 mt-1.5">{currentProduct?.nama}</h3>
+                                    <span className="text-xs font-bold text-[#6B8E6E] bg-[#6B8E6E]/10 px-2.5 py-1 rounded-md uppercase tracking-wider">Sesuaikan Pesanan</span>
+                                    <h3 className="text-2xl font-black text-[#2B422C] mt-2">{currentProduct.nama}</h3>
+                                    <p className="font-bold text-[#6B8E6E] mt-1">Rp {Number(currentProduct.harga_dasar).toLocaleString('id-ID')}</p>
                                 </div>
-                                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600 text-xl font-bold bg-gray-100 h-8 w-8 rounded-full flex items-center justify-center">✕</button>
+                                <button onClick={() => setIsModalOpen(false)} className="text-[#A7B8AA] hover:text-[#4A5D4E] text-xl font-bold bg-[#F0F4F1] h-8 w-8 rounded-full flex items-center justify-center">✕</button>
                             </div>
 
-                            <div className="flex-1 overflow-y-auto py-2">
-                                {loadingVariants ? (
-                                    <div className="text-center py-6 text-sm text-gray-500 font-medium">Memuat varian kopi...</div>
-                                ) : variants.length === 0 ? (
-                                    <div className="text-center py-6 text-sm text-red-500 bg-red-50 rounded-xl p-4">⚠️ Belum ada data varian.</div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {variants.map((variant) => {
-                                            const totalHargaVarian = Number(currentProduct.harga_dasar) + Number(variant.harga_tambahan || 0);
-                                            return (
-                                                <div key={variant.id} onClick={() => handleSelectVariant(variant)} className="p-4 rounded-2xl border border-gray-200 hover:border-amber-500 hover:bg-amber-50/30 cursor-pointer transition-all flex justify-between items-center group active:scale-98">
-                                                    <div>
-                                                        <p className="font-bold text-gray-800 group-hover:text-amber-700">{variant.nama_varian}</p>
-                                                        <p className="text-xs text-gray-400 mt-0.5">{variant.label_ukuran ? `Ukuran: ${variant.label_ukuran}` : ''} {variant.suhu ? ` | Suhu: ${variant.suhu}` : ''}</p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="font-extrabold text-sm text-gray-700">Rp {totalHargaVarian.toLocaleString('id-ID')}</p>
-                                                        {Number(variant.harga_tambahan) > 0 && <p className="text-[10px] text-green-600 font-bold">+Rp {Number(variant.harga_tambahan).toLocaleString('id-ID')}</p>}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                            <div className="flex-1 overflow-y-auto space-y-6 pb-4">
+                                {/* SIZE */}
+                                {globalModifiers.size.length > 0 && (
+                                    <div>
+                                        <h4 className="font-bold text-[#2B422C] text-sm mb-3">Pilih Ukuran (Size)</h4>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {globalModifiers.size.map(opt => (
+                                                <button
+                                                    key={opt.id}
+                                                    onClick={() => setSelectedOptions({ ...selectedOptions, size: opt })}
+                                                    className={`py-2 px-1 rounded-xl text-xs font-bold border-2 transition-all ${selectedOptions.size?.id === opt.id ? 'border-[#6B8E6E] bg-[#6B8E6E]/10 text-[#2B422C]' : 'border-[#EAEFEA] text-[#A7B8AA] hover:border-[#A7B8AA]'}`}
+                                                >
+                                                    {opt.nama_varian}
+                                                    {Number(opt.harga_tambahan) > 0 && <span className="block text-[10px] text-[#6B8E6E]">+ {Number(opt.harga_tambahan) / 1000}k</span>}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
+
+                                {/* ICE */}
+                                {globalModifiers.ice.length > 0 && (
+                                    <div>
+                                        <h4 className="font-bold text-[#2B422C] text-sm mb-3">Tingkat Es (Ice)</h4>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {globalModifiers.ice.map(opt => (
+                                                <button
+                                                    key={opt.id}
+                                                    onClick={() => setSelectedOptions({ ...selectedOptions, ice: opt })}
+                                                    className={`py-2 px-1 rounded-xl text-xs font-bold border-2 transition-all ${selectedOptions.ice?.id === opt.id ? 'border-blue-400 bg-blue-50 text-blue-900' : 'border-[#EAEFEA] text-[#A7B8AA] hover:border-[#A7B8AA]'}`}
+                                                >
+                                                    {opt.nama_varian}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* SWEETNESS */}
+                                {globalModifiers.sweetness.length > 0 && (
+                                    <div>
+                                        <h4 className="font-bold text-[#2B422C] text-sm mb-3">Tingkat Gula (Sweetness)</h4>
+                                        <div className="grid grid-cols-3 gap-2">
+                                            {globalModifiers.sweetness.map(opt => (
+                                                <button
+                                                    key={opt.id}
+                                                    onClick={() => setSelectedOptions({ ...selectedOptions, sweetness: opt })}
+                                                    className={`py-2 px-1 rounded-xl text-xs font-bold border-2 transition-all ${selectedOptions.sweetness?.id === opt.id ? 'border-amber-400 bg-amber-50 text-amber-900' : 'border-[#EAEFEA] text-[#A7B8AA] hover:border-[#A7B8AA]'}`}
+                                                >
+                                                    {opt.nama_varian}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="pt-4 border-t border-[#EAEFEA]">
+                                <div className="flex justify-between items-center mb-4 px-1">
+                                    <span className="font-bold text-[#2B422C] text-sm">Jumlah Pesanan</span>
+                                    <div className="flex items-center gap-4">
+                                        <button
+                                            onClick={() => setModalQty(Math.max(1, modalQty - 1))}
+                                            className="w-8 h-8 rounded-full bg-[#F0F4F1] text-[#4A5D4E] font-bold flex items-center justify-center hover:bg-[#EAEFEA] transition-colors"
+                                        >
+                                            -
+                                        </button>
+                                        <span className="font-black text-[#2B422C] w-4 text-center">{modalQty}</span>
+                                        <button
+                                            onClick={() => setModalQty(modalQty + 1)}
+                                            className="w-8 h-8 rounded-full bg-[#6B8E6E] text-white font-bold flex items-center justify-center hover:bg-[#527055] transition-colors"
+                                        >
+                                            +
+                                        </button>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={handleAddToCart}
+                                    className="w-full bg-[#6B8E6E] text-white font-bold py-4 rounded-xl shadow-lg hover:bg-[#527055] active:scale-95 transition-all flex justify-between px-6"
+                                >
+                                    <span>Tambah ke Pesanan</span>
+                                    <span>
+                                        {/* KALIKAN TOTAL HARGA SATUAN DENGAN QTY */}
+                                        Rp {((Number(currentProduct.harga_dasar) + (selectedOptions.size ? Number(selectedOptions.size.harga_tambahan) : 0) + (selectedOptions.ice ? Number(selectedOptions.ice.harga_tambahan) : 0) + (selectedOptions.sweetness ? Number(selectedOptions.sweetness.harga_tambahan) : 0)) * modalQty).toLocaleString('id-ID')}
+                                    </span>
+                                </button>
                             </div>
                         </div>
                     </div>
                 )}
             </div>
 
-            {/* ======================================================== */}
-            {/* 2. AREA CETAK STRUK THERMAL (HANYA MUNCUL DI PRINTER)    */}
-            {/* ======================================================== */}
+            {/* AREA CETAK STRUK THERMAL */}
             {receiptData && (
                 <div className="hidden print:block w-[58mm] mx-auto text-black bg-white font-mono text-[12px] p-2">
-                    {/* Header Struk */}
                     <div className="text-center mb-4">
                         <h2 className="font-extrabold text-lg uppercase tracking-widest">HYRE COFFEE</h2>
                         <p className="text-[10px]">Jl. Raya Bekasi, Jawa Barat</p>
@@ -302,7 +495,6 @@ export default function PosDashboard({ onLogout }) {
                         </p>
                     </div>
 
-                    {/* Item Pesanan */}
                     <div className="mb-4">
                         {receiptData.items.map((item, index) => (
                             <div key={index} className="mb-2">
@@ -312,13 +504,12 @@ export default function PosDashboard({ onLogout }) {
                                     <span>{(item.harga_satuan * item.qty).toLocaleString('id-ID')}</span>
                                 </div>
                                 <p className="text-[10px] italic">
-                                    - {item.nama_varian} {item.label_ukuran} {item.suhu}
+                                    - {item.size}, {item.ice}, {item.sweetness}
                                 </p>
                             </div>
                         ))}
                     </div>
 
-                    {/* Footer / Total */}
                     <div className="border-t border-dashed border-black pt-2 mb-4">
                         <div className="flex justify-between font-bold text-sm">
                             <span>TOTAL</span>
