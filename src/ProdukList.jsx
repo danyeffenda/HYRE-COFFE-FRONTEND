@@ -25,6 +25,10 @@ export default function ProdukList() {
     const [fileGambar, setFileGambar] = useState(null);
     const [previewGambar, setPreviewGambar] = useState(null);
 
+    // STATE BARU UNTUK FILTER
+    const [searchQuery, setSearchQuery] = useState('');
+    const [filterKategori, setFilterKategori] = useState('Semua');
+
     const token = localStorage.getItem('jwt_token');
 
     const fetchProduk = async () => {
@@ -163,6 +167,19 @@ export default function ProdukList() {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
     };
 
+    // LOGIKA FILTER PRODUK
+    const filteredProduks = produks.filter((produk) => {
+        const cari = searchQuery.toLowerCase();
+        // Cocokkan dengan nama ATAU kode produk
+        const matchSearch = produk.nama.toLowerCase().includes(cari) ||
+            produk.kode_produk.toLowerCase().includes(cari);
+
+        const matchKategori = filterKategori === 'Semua' ||
+            (produk.kategori && produk.kategori.nama === filterKategori);
+
+        return matchSearch && matchKategori;
+    });
+
     if (loading) return <div className="p-8 text-center text-gray-500 font-semibold animate-pulse">Memuat data...</div>;
     if (error) return <div className="p-8 text-center text-red-500 font-semibold bg-red-50 rounded-xl">{error}</div>;
 
@@ -178,9 +195,40 @@ export default function ProdukList() {
                 </button>
             </div>
 
+            {/* --- UI FILTER DIMULAI DI SINI --- */}
+            <div className="flex flex-col sm:flex-row justify-between items-center mb-4 gap-4">
+                {/* Kotak Pencarian */}
+                <div className="w-full sm:w-1/3 relative">
+                    <input
+                        type="text"
+                        placeholder="Cari kode atau nama produk..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                    />
+                    <span className="absolute left-3.5 top-2.5 text-gray-400">🔍</span>
+                </div>
+
+                {/* Dropdown Kategori */}
+                <div className="w-full sm:w-1/4">
+                    <select
+                        value={filterKategori}
+                        onChange={(e) => setFilterKategori(e.target.value)}
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none text-sm bg-white font-bold text-gray-700"
+                    >
+                        <option value="Semua">Semua Kategori</option>
+                        {kategoris.map((kat) => (
+                            <option key={kat.id} value={kat.nama}>{kat.nama}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+            {/* --- UI FILTER SELESAI --- */}
+
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
+                        {/* ... (bagian <thead> tetap sama) ... */}
                         <thead>
                             <tr className="bg-gray-50 border-b border-gray-100 text-gray-500 text-sm uppercase tracking-wider">
                                 <th className="p-4 font-bold text-center w-24">Foto</th>
@@ -193,38 +241,49 @@ export default function ProdukList() {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {produks.map((produk) => (
-                                <tr key={produk.id} className="hover:bg-gray-50 transition-colors">
-                                    <td className="p-4 flex justify-center">
-                                        {produk.url_gambar ? (
-                                            <img
-                                                src={`http://127.0.0.1:8000/storage/${produk.url_gambar}`}
-                                                alt={produk.nama}
-                                                className="w-12 h-12 object-cover rounded-lg border border-gray-200"
-                                            />
-                                        ) : (
-                                            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-xs text-center border border-gray-200">
-                                                No Image
-                                            </div>
-                                        )}
-                                    </td>
-                                    <td className="p-4 text-sm font-semibold text-gray-700">{produk.kode_produk}</td>
-                                    <td className="p-4 text-sm font-bold text-gray-900">{produk.nama}</td>
-                                    <td className="p-4 text-sm text-gray-600">{produk.kategori ? produk.kategori.nama : '-'}</td>
-                                    <td className="p-4 text-sm font-semibold text-amber-600 text-right">{formatRupiah(produk.harga_dasar)}</td>
-                                    <td className="p-4 text-center">
-                                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${produk.aktif ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                                            {produk.aktif ? 'Aktif' : 'Nonaktif'}
-                                        </span>
-                                    </td>
-                                    <td className="p-4">
-                                        <div className="flex justify-center space-x-2">
-                                            <button onClick={() => handleEditClick(produk)} className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-100">Edit</button>
-                                            <button onClick={() => handleDelete(produk.id, produk.nama)} className="px-3 py-1 bg-red-50 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100">Hapus</button>
-                                        </div>
+
+                            {/* --- UBAH PRODUKS.MAP MENJADI FILTEREDPRODUKS.MAP --- */}
+                            {filteredProduks.length === 0 ? (
+                                <tr>
+                                    <td colSpan="7" className="p-8 text-center text-gray-400 font-medium">
+                                        Produk tidak ditemukan.
                                     </td>
                                 </tr>
-                            ))}
+                            ) : (
+                                filteredProduks.map((produk) => (
+                                    <tr key={produk.id} className="hover:bg-gray-50 transition-colors">
+                                        {/* ... (isi <td> tetap sama persis seperti sebelumnya) ... */}
+                                        <td className="p-4 flex justify-center">
+                                            {produk.url_gambar ? (
+                                                <img
+                                                    src={`http://127.0.0.1:8000/storage/${produk.url_gambar}`}
+                                                    alt={produk.nama}
+                                                    className="w-12 h-12 object-cover rounded-lg border border-gray-200"
+                                                />
+                                            ) : (
+                                                <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-gray-400 text-xs text-center border border-gray-200">
+                                                    No Image
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className="p-4 text-sm font-semibold text-gray-700">{produk.kode_produk}</td>
+                                        <td className="p-4 text-sm font-bold text-gray-900">{produk.nama}</td>
+                                        <td className="p-4 text-sm text-gray-600">{produk.kategori ? produk.kategori.nama : '-'}</td>
+                                        <td className="p-4 text-sm font-semibold text-amber-600 text-right">{formatRupiah(produk.harga_dasar)}</td>
+                                        <td className="p-4 text-center">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${produk.aktif ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                {produk.aktif ? 'Aktif' : 'Nonaktif'}
+                                            </span>
+                                        </td>
+                                        <td className="p-4">
+                                            <div className="flex justify-center space-x-2">
+                                                <button onClick={() => handleEditClick(produk)} className="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-100">Edit</button>
+                                                <button onClick={() => handleDelete(produk.id, produk.nama)} className="px-3 py-1 bg-red-50 text-red-600 rounded-lg text-sm font-bold hover:bg-red-100">Hapus</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))
+                            )}
                         </tbody>
                     </table>
                 </div>

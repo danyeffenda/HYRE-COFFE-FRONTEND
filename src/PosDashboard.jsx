@@ -71,11 +71,23 @@ export default function PosDashboard({ onLogout }) {
         fetchData();
     }, []);
 
-    const filteredProducts = products.filter(product => {
-        const matchesCategory = activeCategory === 'Semua Produk' || (product.kategori && product.kategori.nama === activeCategory);
-        const matchesSearch = product.nama.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch && product.aktif;
-    });
+    const filteredProducts = products
+        .filter(product => {
+            const matchesCategory =
+                activeCategory === "Semua Produk" ||
+                (product.kategori && product.kategori.nama === activeCategory);
+
+            const matchesSearch = product.nama
+                .toLowerCase()
+                .includes(searchQuery.toLowerCase());
+
+            return matchesCategory && matchesSearch && product.aktif;
+        })
+        .sort((a, b) => {
+            const dateA = a.diperbarui_pada ? new Date(a.diperbarui_pada) : new Date(0);
+            const dateB = b.diperbarui_pada ? new Date(b.diperbarui_pada) : new Date(0);
+            return dateB - dateA;
+        });
 
     // 2. Klik Produk
     const handleProductClick = (product) => {
