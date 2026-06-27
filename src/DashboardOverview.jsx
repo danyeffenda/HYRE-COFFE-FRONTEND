@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../axiosConfig';
+import { LayoutDashboard, Coffee, Users, Store, Wallet, ShoppingCart } from 'lucide-react';
 
 export default function DashboardOverview() {
     const [stats, setStats] = useState({
@@ -56,8 +57,8 @@ export default function DashboardOverview() {
 
                 {/* Kartu Pendapatan */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-                    <div className="w-14 h-14 bg-green-100 text-green-600 rounded-xl flex items-center justify-center text-2xl">
-                        💰
+                    <div className="w-14 h-14 bg-green-100 text-green-600 rounded-xl flex items-center justify-center">
+                        <Wallet className="w-7 h-7" />
                     </div>
                     <div>
                         <p className="text-sm font-bold text-gray-500">Pendapatan Hari Ini</p>
@@ -67,8 +68,8 @@ export default function DashboardOverview() {
 
                 {/* Kartu Transaksi */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-                    <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center text-2xl">
-                        🛒
+                    <div className="w-14 h-14 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center">
+                        <ShoppingCart className="w-7 h-7" />
                     </div>
                     <div>
                         <p className="text-sm font-bold text-gray-500">Transaksi Hari Ini</p>
@@ -78,8 +79,8 @@ export default function DashboardOverview() {
 
                 {/* Kartu Produk */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-                    <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-2xl">
-                        ☕
+                    <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
+                        <Coffee className="w-7 h-7" />
                     </div>
                     <div>
                         <p className="text-sm font-bold text-gray-500">Total Produk Aktif</p>
@@ -89,8 +90,8 @@ export default function DashboardOverview() {
 
                 {/* Kartu Pegawai */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4 hover:shadow-md transition-shadow">
-                    <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center text-2xl">
-                        👥
+                    <div className="w-14 h-14 bg-purple-100 text-purple-600 rounded-xl flex items-center justify-center">
+                        <Users className="w-7 h-7" />
                     </div>
                     <div>
                         <p className="text-sm font-bold text-gray-500">Total Pegawai</p>

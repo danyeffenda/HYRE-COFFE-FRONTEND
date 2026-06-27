@@ -36,11 +36,15 @@ export default function PosDashboard({ onLogout }) {
     useEffect(() => {
         const fetchData = async () => {
             try {
+                const token = localStorage.getItem('jwt_token'); // Pastikan token diambil
+                const headers = { Authorization: `Bearer ${token}` };
+
                 const [resProduk, resKategori, resVarian] = await Promise.all([
-                    api.get('/produk'),
-                    api.get('/kategori'),
-                    api.get('/varian-produk')
+                    api.get('/produk', { headers }),
+                    api.get('/kategori', { headers }),
+                    api.get('/varian-produk', { headers })
                 ]);
+                // ..
 
                 setProducts(resProduk.data.data || resProduk.data);
                 setKategoris(resKategori.data.data || resKategori.data);

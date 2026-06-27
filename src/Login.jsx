@@ -53,7 +53,7 @@ export default function Login({ onLoginSuccess }) {
                 ></div>
                 <div className="absolute inset-0 bg-gradient-to-t from-[#142315] via-[#142315]/60 to-transparent"></div>
                 <div className="relative z-10 text-white max-w-lg mb-10">
-                    <h1 className="text-5xl font-bold mb-4 leading-tight">Hyree Sistem</h1>
+                    <h1 className="text-5xl font-bold mb-4 leading-tight">Hyre Sistem</h1>
                     <p className="text-lg text-[#D1E2D3] font-medium leading-relaxed">
                         Akses semua informasi operasional, kelola pesanan,
                         dan pantau penjualan dengan mudah dan cepat.
