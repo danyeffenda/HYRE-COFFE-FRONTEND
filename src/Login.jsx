@@ -95,7 +95,7 @@ export default function Login({ onLoginSuccess }) {
                                 <input
                                     type="email"
                                     className="w-full pl-14 pr-5 py-4.5 rounded-xl border-2 border-[#E2E8E4] bg-white focus:ring-2 focus:ring-[#6B8E6E] focus:border-[#6B8E6E] text-[#2B422C] text-lg outline-none transition-all placeholder-[#A7B8AA]"
-                                    placeholder="kasir01@kopikeliling.com"
+                                    placeholder="Masukan Email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
