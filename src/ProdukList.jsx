@@ -102,7 +102,7 @@ export default function ProdukList() {
 
         // Reset file state, tapi tampilkan preview gambar lama jika ada
         setFileGambar(null);
-        setPreviewGambar(produk.url_gambar ? `http://127.0.0.1:8000/storage/${produk.url_gambar}` : null);
+        setPreviewGambar(produk.url_gambar ? `http://api.effendaproject.my.id/storage/${produk.url_gambar}` : null);
 
         setIsModalOpen(true);
     };
@@ -256,7 +256,7 @@ export default function ProdukList() {
                                         <td className="p-4 flex justify-center">
                                             {produk.url_gambar ? (
                                                 <img
-                                                    src={`http://127.0.0.1:8000/storage/${produk.url_gambar}`}
+                                                    src={`http://api.effendaproject.my.id/storage/${produk.url_gambar}`}
                                                     alt={produk.nama}
                                                     className="w-12 h-12 object-cover rounded-lg border border-gray-200"
                                                 />

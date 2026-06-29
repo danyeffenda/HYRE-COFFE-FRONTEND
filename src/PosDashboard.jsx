@@ -287,7 +287,7 @@ export default function PosDashboard({ onLogout }) {
                                                 <div className="aspect-square bg-[#F7F8F7] flex items-center justify-center">
                                                     {product.url_gambar ? (
                                                         <img
-                                                            src={`http://127.0.0.1:8000/storage/${product.url_gambar}`}
+                                                            src={`http://api.effendaproject.my.id/storage/${product.url_gambar}`}
                                                             alt={product.nama}
                                                             className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
                                                         />
