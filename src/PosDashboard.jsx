@@ -309,64 +309,82 @@ export default function PosDashboard({ onLogout }) {
                             </div>
                         </div>
                     </main>
+                    <aside className="relative w-full lg:w-96 bg-white shadow-2xl flex flex-col h-screen border-l border-[#EAEFEA]">
 
-                    <aside className="w-full lg:w-96 bg-white shadow-2xl flex flex-col border-t lg:border-l border-[#EAEFEA] max-h-[45vh] lg:max-h-full">
-                        <div className="p-6 border-b border-[#EAEFEA] flex justify-between items-center shrink-0">
-                            <h2 className="text-xl font-bold text-[#2B422C]">Pesanan Saat Ini</h2>
-                            <span className="bg-[#6B8E6E]/10 text-[#6B8E6E] text-xs font-bold px-2 py-1 rounded-lg">{cart.length} Item</span>
+                        {/* Header */}
+                        <div className="p-6 border-b shrink-0 bg-white z-10">
+                            <div className="flex justify-between items-center">
+                                <h2 className="text-xl font-bold text-[#2B422C]">
+                                    Pesanan Saat Ini
+                                </h2>
+
+                                <span className="bg-[#6B8E6E]/10 text-[#6B8E6E] text-xs font-bold px-2 py-1 rounded-lg">
+                                    {cart.length} Item
+                                </span>
+                            </div>
                         </div>
 
-                        <div className="flex-1 p-6 overflow-y-auto">
+                        {/* List Pesanan */}
+                        <div className="flex-1 overflow-y-auto p-6 pb-56">
                             {cart.length === 0 ? (
                                 <div className="flex flex-col items-center justify-center h-full text-[#A7B8AA]">
                                     <p className="text-4xl mb-2">🛒</p>
-                                    <p className="text-sm font-medium">Belum ada pesanan</p>
+                                    <p className="text-sm font-medium">
+                                        Belum ada pesanan
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="space-y-4">
                                     {cart.map((item, index) => (
-                                        <div key={index} className="flex flex-col border-b border-[#F0F4F1] pb-3 mb-1">
-                                            {/* Baris Atas: Nama Produk & Total Harga */}
+                                        <div
+                                            key={index}
+                                            className="flex flex-col border-b border-[#F0F4F1] pb-3 mb-1"
+                                        >
+                                            {/* Nama Produk */}
                                             <div className="flex justify-between items-start mb-2">
                                                 <div>
-                                                    <h4 className="font-bold text-[#2B422C] text-sm leading-tight">{item.nama_produk}</h4>
+                                                    <h4 className="font-bold text-[#2B422C] text-sm leading-tight">
+                                                        {item.nama_produk}
+                                                    </h4>
+
                                                     <p className="text-[10px] text-[#6B8E6E] font-medium mt-0.5">
                                                         {item.size} • {item.ice} • {item.sweetness}
                                                     </p>
                                                 </div>
-                                                <div className="font-bold text-[#2B422C] text-sm text-right shrink-0 ml-2">
-                                                    Rp {(item.harga_satuan * item.qty).toLocaleString('id-ID')}
+
+                                                <div className="font-bold text-[#2B422C] text-sm ml-2">
+                                                    Rp {(item.harga_satuan * item.qty).toLocaleString("id-ID")}
                                                 </div>
                                             </div>
 
-                                            {/* Baris Bawah: Harga Satuan & Kontrol Qty */}
+                                            {/* Qty */}
                                             <div className="flex justify-between items-center">
-                                                <p className="text-xs text-[#A7B8AA]">@ Rp {item.harga_satuan.toLocaleString('id-ID')}</p>
+                                                <p className="text-xs text-[#A7B8AA]">
+                                                    @ Rp {item.harga_satuan.toLocaleString("id-ID")}
+                                                </p>
 
                                                 <div className="flex items-center gap-2">
-                                                    {/* Tombol Hapus */}
                                                     <button
                                                         onClick={() => handleRemoveFromCart(item.cart_id)}
-                                                        className="text-red-400 hover:text-red-600 text-xs font-bold mr-2 px-2 py-1 rounded-md hover:bg-red-50 transition-colors"
+                                                        className="text-red-400 hover:text-red-600 text-xs font-bold mr-2 px-2 py-1 rounded-md hover:bg-red-50"
                                                     >
                                                         Hapus
                                                     </button>
 
-                                                    {/* Tombol Minus */}
                                                     <button
                                                         onClick={() => handleUpdateCartQty(item.cart_id, -1)}
-                                                        className="w-6 h-6 rounded-md bg-[#F0F4F1] text-[#4A5D4E] font-bold flex items-center justify-center hover:bg-[#EAEFEA] transition-colors"
+                                                        className="w-6 h-6 rounded-md bg-[#F0F4F1] font-bold hover:bg-[#EAEFEA]"
                                                     >
                                                         -
                                                     </button>
 
-                                                    {/* Angka Qty */}
-                                                    <span className="text-xs font-black text-[#2B422C] w-4 text-center">{item.qty}</span>
+                                                    <span className="text-xs font-black w-4 text-center">
+                                                        {item.qty}
+                                                    </span>
 
-                                                    {/* Tombol Plus */}
                                                     <button
                                                         onClick={() => handleUpdateCartQty(item.cart_id, 1)}
-                                                        className="w-6 h-6 rounded-md bg-[#6B8E6E] text-white font-bold flex items-center justify-center hover:bg-[#527055] transition-colors"
+                                                        className="w-6 h-6 rounded-md bg-[#6B8E6E] text-white font-bold hover:bg-[#527055]"
                                                     >
                                                         +
                                                     </button>
@@ -378,17 +396,43 @@ export default function PosDashboard({ onLogout }) {
                             )}
                         </div>
 
-                        <div className="p-6 bg-[#F5F7F5] border-t border-[#EAEFEA]">
+                        {/* Footer Fixed */}
+                        <div
+                            className="
+            fixed
+            bottom-0
+            right-0
+            w-full
+            lg:w-96
+            bg-[#F5F7F5]
+            border-t
+            border-[#EAEFEA]
+            p-6
+            shadow-[0_-8px_20px_rgba(0,0,0,0.12)]
+            z-50
+        "
+                        >
                             <div className="flex justify-between items-center mb-6">
-                                <span className="font-bold text-[#4A5D4E]">Total Tagihan</span>
-                                <span className="font-black text-2xl text-[#2B422C]">Rp {totalHarga.toLocaleString('id-ID')}</span>
+                                <span className="font-bold text-[#4A5D4E]">
+                                    Total Tagihan
+                                </span>
+
+                                <span className="font-black text-2xl text-[#2B422C]">
+                                    Rp {totalHarga.toLocaleString("id-ID")}
+                                </span>
                             </div>
+
                             <button
                                 onClick={handleCheckout}
                                 disabled={cart.length === 0 || isProcessing}
-                                className={`w-full font-bold py-4 rounded-xl transition-colors shadow-lg ${cart.length > 0 && !isProcessing ? 'bg-[#6B8E6E] text-white hover:bg-[#527055] active:bg-[#4A5D4E] shadow-[#6B8E6E]/30' : 'bg-[#EAEFEA] text-[#A7B8AA] cursor-not-allowed shadow-none'}`}
+                                className={`w-full font-bold py-4 rounded-xl transition-colors shadow-lg ${cart.length > 0 && !isProcessing
+                                    ? "bg-[#6B8E6E] text-white hover:bg-[#527055] active:bg-[#4A5D4E] shadow-[#6B8E6E]/30"
+                                    : "bg-[#EAEFEA] text-[#A7B8AA] cursor-not-allowed shadow-none"
+                                    }`}
                             >
-                                {isProcessing ? 'Memproses Transaksi...' : 'Proses Pembayaran'}
+                                {isProcessing
+                                    ? "Memproses Transaksi..."
+                                    : "Proses Pembayaran"}
                             </button>
                         </div>
 
